@@ -1,5 +1,5 @@
 import { domainRoot } from '../data/config.js';
-import { eventNames } from '../data/enums.js';
+import { eventNames } from '../data-library/enums.js';
 import { routes, aliases } from '../data/routes.js';
 import { checkStringForExistence, checkStringForNonExistence } from '../helper-library/data.js';
 import { clearChildren } from '../helper-library/dom.js';
