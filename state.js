@@ -67,18 +67,18 @@ class State {
 
   /**
    *
-   * @param {String} section
-   * @param {Array[String]} items
+   * @param {String} url
+   * @param {String} observableName
+   * @returns
    */
-  async getGameplayData(section) {
-    console.log(`---> getGameplayData(${section})`);
-    // TODO: check local storage...
-    let res = await jsonRequest(`${gameServiceUrl}/data/gameplay-data/${section}`);
+  async getDataFromServer(url, observableName) {
+    console.log(`---> getDataFromServer(${url})`);
+    let res = await jsonRequest(url);
 
     if (res.completionCode == 0) {
       delete res.completionCode;
       delete res.completionMessage;
-      this.createObservable(section, res);
+      this.createObservable(observableName, res);
     }
     else {
       // TODO: display appropriate error!
@@ -102,8 +102,12 @@ class State {
     return null;
   }
 
-  async pingServer() {
-    await jsonRequest(`${gameServiceUrl}/`);
+  /**
+   *
+   * @param {URL} url
+   */
+  async pingServer(url) {
+    await jsonRequest(url);
   }
 
   /**
