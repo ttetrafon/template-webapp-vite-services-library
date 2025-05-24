@@ -30,7 +30,7 @@ class State {
    */
   createObservable(observable, obj) {
     let onChange = (property, newValue) => {
-      console.log(`Property '${property}' changed to:`, newValue, "... calling subscribers!");
+      // console.log(`Property '${property}' changed to:`, newValue, "... calling subscribers!");
       Object.keys(this.#observables[observable].listeners).forEach(subscriber =>
         this.#observables[observable].listeners[subscriber](subscriber, property, newValue)
       );
@@ -155,9 +155,10 @@ class State {
    *
    * @param {String} observable The name of the observable object.
    * @param {String} prop The name of the key in the object to update.
-   * @param {Obj} value
+   * @param {Object} value
    */
   updateObservable(observable, prop, value) {
+    // console.log(`---> updateObservable(${observable}, ${prop}, ${JSON.stringify(value)})`);
     if (this.#observables.hasOwnProperty(observable)) {
       this.#observables[observable].proxy[prop] = value;
     }
