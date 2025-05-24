@@ -71,7 +71,7 @@ class State {
    * @returns
    */
   async getDataFromServer(url, observableName) {
-    console.log(`---> getDataFromServer(${url})`);
+    // console.log(`---> getDataFromServer(${url})`);
     let res = await jsonRequest(url);
 
     if (res.completionCode == 0) {
@@ -119,7 +119,7 @@ class State {
    * @param {Object} message
    */
   async publishMessage(url, message, method) {
-    console.log(`---> publishMessage(${url}, ${JSON.stringify(message)})`);
+    // console.log(`---> publishMessage(${url}, ${JSON.stringify(message)})`);
     switch(this.#gameConnection) {
       case generalNames.CONNECTION_LIVE:
         console.log("... ws");
@@ -139,13 +139,13 @@ class State {
    * @param {String} subscriber: the name of the subscriber
    * @param {Function} callback: the function called in the subscriber when the
    */
-  subscribeToObservable(observable, subscriber, callback) {
+  async subscribeToObservable(observable, subscriber, callback) {
     if (this.#observables.hasOwnProperty(observable) && !this.#observables[observable].listeners.hasOwnProperty(subscriber)) {
       this.#observables[observable].listeners[subscriber] = callback;
     }
   }
 
-  unsubscribeFromObservable(observable, subscriber) {
+  async unsubscribeFromObservable(observable, subscriber) {
     if (this.#observables.hasOwnProperty(observable) && this.#observables[observable].listeners.hasOwnProperty(subscriber)) {
       delete this.#observables[observable].listeners[subscriber];
     }
@@ -157,8 +157,10 @@ class State {
    * @param {String} prop The name of the key in the object to update.
    * @param {Object} value
    */
-  updateObservable(observable, prop, value) {
+  async updateObservable(observable, prop, value) {
     // console.log(`---> updateObservable(${observable}, ${prop}, ${JSON.stringify(value)})`);
+    // let s = await this.getValueFromObservable(observable, prop);
+    // console.log(s, value);
     if (this.#observables.hasOwnProperty(observable)) {
       this.#observables[observable].proxy[prop] = value;
     }
