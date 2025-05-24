@@ -1,6 +1,6 @@
 import { gameServiceUrl } from "../data/config.js";
 import { generalNames } from "../data-library/enums.js";
-import { jsonRequest } from '../helper-library/requests.js';
+import { jsonRequest, requestSymbols } from '../helper-library/requests.js';
 import { roles, User } from "../model/user.js";
 
 class State {
@@ -119,16 +119,16 @@ class State {
    * @param {Symbol} type
    * @param {Object} message
    */
-  async publishMessage(type, message) {
-    console.log(`---> publishMessage(${type.description}, ${JSON.stringify(message)})`);
+  async publishMessage(url, message, method) {
+    console.log(`---> publishMessage(${url}, ${JSON.stringify(message)})`);
     switch(this.#gameConnection) {
       case generalNames.CONNECTION_LIVE:
         console.log("... ws");
         break;
       case generalNames.CONNECTION_SOLO:
         console.log("... api");
-        break;
-      case generalNames.CONNECTION_OFFLINE:
+        return await jsonRequest(url, message, method);
+      default: // generalNames.CONNECTION_OFFLINE:
         console.log("... local");
         break;
     }
