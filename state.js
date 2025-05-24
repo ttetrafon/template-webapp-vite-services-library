@@ -1,6 +1,5 @@
-import { gameServiceUrl } from "../data/config.js";
 import { generalNames } from "../data-library/enums.js";
-import { jsonRequest, requestSymbols } from '../helper-library/requests.js';
+import { jsonRequest } from '../helper-library/requests.js';
 import { roles, User } from "../model/user.js";
 
 class State {
@@ -152,6 +151,12 @@ class State {
     }
   }
 
+  /**
+   *
+   * @param {String} observable The name of the observable object.
+   * @param {String} prop The name of the key in the object to update.
+   * @param {Obj} value
+   */
   updateObservable(observable, prop, value) {
     if (this.#observables.hasOwnProperty(observable)) {
       this.#observables[observable].proxy[prop] = value;
