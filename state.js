@@ -1,3 +1,4 @@
+import { cloneDeep } from "lodash";
 import { generalNames } from "../data-library/enums.js";
 import { jsonRequest } from '../helper-library/requests.js';
 import { roles, User } from "../model/user.js";
@@ -12,9 +13,7 @@ class State {
     }
 
     let userUuid = Math.random();
-    try {
-      userUuid = crypto.randomUUID();
-    } catch(err) {}
+    userUuid = crypto.randomUUID();
     this.createObservable(
       generalNames.OBSERVABLE_USER.description,
       new User(userUuid, roles.VISITOR)
@@ -96,7 +95,8 @@ class State {
   async getValueFromObservable(observable, prop) {
     // console.log(`---> getValueFromObservable(${observable}, ${prop})`);
     if (this.#observables.hasOwnProperty(observable)) {
-      return this.#observables[observable].proxy[prop];
+      let value = this.#observables[observable].proxy[prop];
+      return cloneDeep(value);
     }
     return null;
   }
