@@ -1,4 +1,4 @@
-import { eventNames } from "../data/enums.js";
+import { eventNames } from "../data-library/enums.js";
 
 const spinningCircle = document.createElement("loading-circle");
 document.body.appendChild(spinningCircle);

@@ -1,5 +1,5 @@
 import { domainRoot } from '../data/config.js';
-import { eventNames } from '../data/enums.js';
+import { eventNames } from '../data-library/enums.js';
 import { routes, aliases } from '../data/routes.js';
 import { checkStringForExistence, checkStringForNonExistence } from '../helper-library/data.js';
 import { clearChildren } from '../helper-library/dom.js';
@@ -54,7 +54,7 @@ export class Navigator {
       this.dialog.showModal();
     });
     this.dialog.addEventListener(eventNames.DIALOG_CONFIRM.description, async (event) => {
-      console.log("dialog event:", eventNames.DIALOG_CONFIRM.description)
+      // console.log("dialog event:", eventNames.DIALOG_CONFIRM.description)
       event.stopImmediatePropagation();
       this.dialog.close();
       await this.$dialogConfirmCallback(event.detail.data);
@@ -63,7 +63,7 @@ export class Navigator {
       this.$dialogConfirmCallback = () => { };
     });
     this.dialog.addEventListener(eventNames.DIALOG_CANCEL.description, async (event) => {
-      console.log("dialog event:", eventNames.DIALOG_CANCEL.description)
+      // console.log("dialog event:", eventNames.DIALOG_CANCEL.description)
       event.stopImmediatePropagation();
       this.dialog.close();
       await this.$dialogCancelCallback();
@@ -72,7 +72,7 @@ export class Navigator {
       this.$dialogConfirmCallback = () => { };
     });
     this.dialog.addEventListener('cancel', async (event) => {
-      console.log("dialog event: cancel");
+      // console.log("dialog event: cancel");
       event.stopImmediatePropagation();
       this.dialog.close();
       await this.$dialogCancelCallback();
