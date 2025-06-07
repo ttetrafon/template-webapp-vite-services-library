@@ -1,6 +1,4 @@
-import { gameServiceUrl } from "../data/config.js";
 import { generalNames } from "../data/enums.js";
-import { jsonRequest } from '../helper-library/requests.js';
 import { roles, User } from "../model/user.js";
 
 class State {
@@ -67,29 +65,6 @@ class State {
 
   /**
    *
-   * @param {String} section
-   * @param {Array[String]} items
-   */
-  async getGameplayData(section) {
-    console.log(`---> getGameplayData(${section})`);
-    // TODO: check local storage...
-    let res = await jsonRequest(`${gameServiceUrl}/data/gameplay-data/${section}`);
-
-    if (res.completionCode == 0) {
-      delete res.completionCode;
-      delete res.completionMessage;
-      this.createObservable(section, res);
-    }
-    else {
-      // TODO: display appropriate error!
-      res = {};
-    }
-
-    return res;
-  }
-
-  /**
-   *
    * @param {String} observable
    * @param {String} prop
    * @returns
@@ -100,10 +75,6 @@ class State {
       return this.#observables[observable].proxy[prop];
     }
     return null;
-  }
-
-  async pingServer() {
-    await jsonRequest(`${gameServiceUrl}/`);
   }
 
   /**
