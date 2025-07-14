@@ -24,15 +24,15 @@ export class Navigator {
 
     // Listen for custom navigate events
     window.addEventListener(eventNames.NAVIGATE.description, (e) => {
-      // console.log(`... received navigation event: ${JSON.stringify(e.detail)}`);
-      this.navigateTo(e.detail.target, true, e.detail.data ? e.detail.data : {});
+      console.log(`... received navigation event:`, e.detail);
+      this.navigateTo(e.detail.target, true, e.detail.stateData ? e.detail.stateData : {});
     });
 
-    window.addEventListener(eventNames.SUB_PAGE_CONTAINER.description, (e) => {
-      e.stopImmediatePropagation();
-      // console.log(eventNames.SUB_PAGE_CONTAINER.description, e.detail);
-      this.$subPageContainers[e.detail.route] = e.detail.container;
-    });
+    // window.addEventListener(eventNames.SUB_PAGE_CONTAINER.description, (e) => {
+    //   e.stopImmediatePropagation();
+    //   // console.log(eventNames.SUB_PAGE_CONTAINER.description, e.detail);
+    //   this.$subPageContainers[e.detail.route] = e.detail.container;
+    // });
 
     this.dialog = document.createElement('dialog');
     const body = document.querySelector("body");
@@ -82,6 +82,16 @@ export class Navigator {
     });
   }
 
+  cleanContainers(newPathParts, currentPathParts) {
+    console.log(`---> cleanContainers(${ JSON.stringify(newPathParts) }, ${ JSON.stringify(currentPathParts) })`);
+    for (let newPart of newPathParts) {
+      if (!currentPathParts.includes(newPart)) {
+        delete this.$subPageContainers[newPart];
+      }
+    }
+    console.log(`... this.$subPageContainers:`, this.$subPageContainers);
+  }
+
   createCanonicalUrl(path) {
     return `${ domainRoot }/${ path }`;
   }
@@ -91,12 +101,7 @@ export class Navigator {
   }
 
   getRoute(route) {
-    let alias = aliases[route];
-    if (!alias) alias = route;
-
-    if (!routes[alias]) alias = "/404";
-
-    let r = routes[alias];
+    let r = routes[route];
     return {
       content: this.createContentElement(r.content),
       title: r.title,
@@ -109,8 +114,7 @@ export class Navigator {
         "@type": r.pathType,
         name: r.title,
         description: r.description,
-        url: this.createCanonicalUrl(r.path),
-        subroute: r.subroute
+        url: this.createCanonicalUrl(r.path)
       },
       subroute: r.subroute,
       navData: r.navData
@@ -118,18 +122,47 @@ export class Navigator {
   }
 
   navigateTo(path, pushState = true, stateData = {}) {
-    // console.log(`navigateTo(${path}, ${pushState}, ${JSON.stringify(stateData)})`);
-    path = this.normalisePath(path);
-    const route = this.getRoute(path);
-    this.updateContent(path, route.subroute, route.content, route.navData);
-    this.updateMetadata(route);
+    console.log(`navigateTo(${ path }, ${ pushState }, ${ JSON.stringify(stateData) })`);
+
+    const currentPath = window.location.pathname;
+    const currentPathParts = currentPath.split("/").filter(Boolean);
+    console.log(`... currentPath = ${ currentPath }`, currentPathParts);
+
+    let newPath = this.normalisePath(path);
+    if (newPath == "/") {
+      newPath = aliases["/"];
+    }
+    const newPathParts = newPath.split("/").filter(Boolean);
+    const numberOfPathParts = newPathParts.length;
+    console.log(`... new path = ${ newPath }}`, newPathParts, numberOfPathParts);
+
+    this.cleanContainers(newPathParts, currentPathParts);
+
+    let parentContainer = this.container;
+    for (let i = 0; i < numberOfPathParts; i++) {
+      let part = newPathParts[i];
+      let route = this.getRoute(part);
+      console.log("...", part, route);
+      parentContainer = this.updateContent(parentContainer, route.content, route.navData);
+
+      // if (parentContainer == null) {
+      //   newPath = this.normalisePath(newPathParts.slice(0, i).join("/"));
+      //   this.updateMetadata(route);
+      //   break;
+      // }
+
+      if (i == numberOfPathParts - 1) {
+        this.updateMetadata(route);
+      }
+    }
+
     if (pushState) {
-      window.history.pushState({}, '', path);
+      window.history.pushState({}, '', newPath);
     }
   }
 
   normalisePath(path) {
-    // console.log(`---> normalisePath(${ path })`);
+    console.log(`---> normalisePath(${ path })`);
     if (path == "/") return path;
     if (path == "") return "/";
     if (path[path.length - 1] == "/") path = path.slice(0, -1);
@@ -149,32 +182,14 @@ export class Navigator {
     link.setAttribute("href", value);
   }
 
-  updateContent(path, isSubroute, content, navData) {
-    // console.log(`--> updateContent(${path}, ${isSubroute}, ${content})`);
-    if (checkStringForNonExistence(content)) return;
+  updateContent(parentContainer, content, navData) {
+    console.log(`--> updateContent()`, parentContainer, content, navData);
+    if (checkStringForNonExistence(content) || !parentContainer) return;
 
-    if (!isSubroute) {
-      this.container.innerHTML = content;
-      if (navData) this.container.firstChild.setAttribute("nav-data", JSON.stringify(navData));
-      return;
-    }
-
-    const elements = path.split("/");
-    const elementsNum = elements.length;
-    const parentPath = "/" + elements[elementsNum - 2];
-    const parentContainer = this.$subPageContainers[parentPath];
-    // console.log(parentPath, parentContainer);
-
-    if (!parentContainer) {
-      this.navigateTo(parentPath);
-
-      setTimeout(() => {
-        this.navigateTo(path);
-      }, 100);
-    }
-    else {
-      parentContainer.innerHTML = content;
-    }
+    parentContainer.innerHTML = content;
+    if (navData) parentContainer.firstChild.setAttribute("nav-data", JSON.stringify(navData));
+    console.log(parentContainer?.firstChild);
+    return "declareSubContainer" in parentContainer.firstChild ? parentContainer.firstChild.declareSubContainer() : null;
   }
 
   updateMetadata(route) {
