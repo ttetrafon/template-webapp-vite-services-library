@@ -93,6 +93,7 @@ export class Navigator {
   }
 
   createCanonicalUrl(path) {
+    console.log(`---> createCanonicalUrl(${ path })`);
     return `${ domainRoot }/${ path }`;
   }
 
@@ -100,13 +101,13 @@ export class Navigator {
     return `<${ content }></${ content }>`;
   }
 
-  getRoute(route) {
+  getRoute(route, pathParts) {
     let r = routes[route];
     return {
       content: this.createContentElement(r.content),
       title: r.title,
       description: r.description,
-      canonicalUrl: this.createCanonicalUrl(r.path),
+      canonicalUrl: this.createCanonicalUrl(pathParts.join("/")),
       structuredData: {
         // https://developers.google.com/search/docs/appearance/structured-data/intro-structured-data
         // https://developers.google.com/search/docs/appearance/structured-data/search-gallery
@@ -116,7 +117,6 @@ export class Navigator {
         description: r.description,
         url: this.createCanonicalUrl(r.path)
       },
-      subroute: r.subroute,
       navData: r.navData
     };
   }
@@ -136,20 +136,21 @@ export class Navigator {
     const numberOfPathParts = newPathParts.length;
     console.log(`... new path = ${ newPath }}`, newPathParts, numberOfPathParts);
 
-    this.cleanContainers(newPathParts, currentPathParts);
-
     let parentContainer = this.container;
     for (let i = 0; i < numberOfPathParts; i++) {
       let part = newPathParts[i];
-      let route = this.getRoute(part);
+      let route = this.getRoute(part, newPathParts);
       console.log("...", part, route);
-      parentContainer = this.updateContent(parentContainer, route.content, route.navData);
 
-      // if (parentContainer == null) {
-      //   newPath = this.normalisePath(newPathParts.slice(0, i).join("/"));
-      //   this.updateMetadata(route);
-      //   break;
-      // }
+      console.log(part == currentPathParts[i]);
+      console.log(!parentContainer.firstChild);
+      if (part != currentPathParts[i] || !parentContainer.firstChild) {
+        console.log(`... updating part: ${part}`);
+        this.updateContent(parentContainer, route.content, route.navData);
+      } else {
+        console.log(`... skipping part: ${part}`);
+      }
+      parentContainer = "declareSubContainer" in parentContainer.firstChild ? parentContainer.firstChild.declareSubContainer() : null;
 
       if (i == numberOfPathParts - 1) {
         this.updateMetadata(route);
@@ -189,10 +190,10 @@ export class Navigator {
     parentContainer.innerHTML = content;
     if (navData) parentContainer.firstChild.setAttribute("nav-data", JSON.stringify(navData));
     console.log(parentContainer?.firstChild);
-    return "declareSubContainer" in parentContainer.firstChild ? parentContainer.firstChild.declareSubContainer() : null;
   }
 
   updateMetadata(route) {
+    console.log(`--> updateMetadata()`, route);
     if (checkStringForExistence(route.title)) document.title = route.title;
     if (checkStringForExistence(route.description)) document.querySelector('meta[name="description"]').setAttribute('content', route.description);
     this.updateCanonicalUrl(route.canonicalUrl);
