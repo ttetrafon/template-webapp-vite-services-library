@@ -24,7 +24,7 @@ export class Navigator {
 
     // Listen for custom navigate events
     window.addEventListener(eventNames.NAVIGATE.description, (e) => {
-      console.log(`... received navigation event:`, e.detail);
+      // console.log(`... received navigation event:`, e.detail);
       this.navigateTo(e.detail.target, true, e.detail.stateData ? e.detail.stateData : {});
     });
 
@@ -83,17 +83,17 @@ export class Navigator {
   }
 
   cleanContainers(newPathParts, currentPathParts) {
-    console.log(`---> cleanContainers(${ JSON.stringify(newPathParts) }, ${ JSON.stringify(currentPathParts) })`);
+    // console.log(`---> cleanContainers(${ JSON.stringify(newPathParts) }, ${ JSON.stringify(currentPathParts) })`);
     for (let newPart of newPathParts) {
       if (!currentPathParts.includes(newPart)) {
         delete this.$subPageContainers[newPart];
       }
     }
-    console.log(`... this.$subPageContainers:`, this.$subPageContainers);
+    // console.log(`... this.$subPageContainers:`, this.$subPageContainers);
   }
 
   createCanonicalUrl(path) {
-    console.log(`---> createCanonicalUrl(${ path })`);
+    // console.log(`---> createCanonicalUrl(${ path })`);
     return `${ domainRoot }/${ path }`;
   }
 
@@ -122,11 +122,11 @@ export class Navigator {
   }
 
   navigateTo(path, pushState = true, stateData = {}) {
-    console.log(`navigateTo(${ path }, ${ pushState }, ${ JSON.stringify(stateData) })`);
+    // console.log(`navigateTo(${ path }, ${ pushState }, ${ JSON.stringify(stateData) })`);
 
     const currentPath = window.location.pathname;
     const currentPathParts = currentPath.split("/").filter(Boolean);
-    console.log(`... currentPath = ${ currentPath }`, currentPathParts);
+    // console.log(`... currentPath = ${ currentPath }`, currentPathParts);
 
     let newPath = this.normalisePath(path);
     if (newPath == "/") {
@@ -134,22 +134,21 @@ export class Navigator {
     }
     const newPathParts = newPath.split("/").filter(Boolean);
     const numberOfPathParts = newPathParts.length;
-    console.log(`... new path = ${ newPath }}`, newPathParts, numberOfPathParts);
+    // console.log(`... new path = ${ newPath }}`, newPathParts, numberOfPathParts);
 
     let parentContainer = this.container;
     for (let i = 0; i < numberOfPathParts; i++) {
       let part = newPathParts[i];
       let route = this.getRoute(part, newPathParts);
-      console.log("...", part, route);
+      // console.log("...", part, route);
 
-      console.log(part == currentPathParts[i]);
-      console.log(!parentContainer.firstChild);
       if (part != currentPathParts[i] || !parentContainer.firstChild) {
-        console.log(`... updating part: ${part}`);
+        // console.log(`... updating part: ${part}`);
         this.updateContent(parentContainer, route.content, route.navData);
-      } else {
-        console.log(`... skipping part: ${part}`);
       }
+      // else {
+      //   console.log(`... skipping part: ${part}`);
+      // }
       parentContainer = "declareSubContainer" in parentContainer.firstChild ? parentContainer.firstChild.declareSubContainer() : null;
 
       if (i == numberOfPathParts - 1) {
@@ -163,7 +162,7 @@ export class Navigator {
   }
 
   normalisePath(path) {
-    console.log(`---> normalisePath(${ path })`);
+    // console.log(`---> normalisePath(${ path })`);
     if (path == "/") return path;
     if (path == "") return "/";
     if (path[path.length - 1] == "/") path = path.slice(0, -1);
@@ -184,16 +183,15 @@ export class Navigator {
   }
 
   updateContent(parentContainer, content, navData) {
-    console.log(`--> updateContent()`, parentContainer, content, navData);
+    // console.log(`--> updateContent()`, parentContainer, content, navData);
     if (checkStringForNonExistence(content) || !parentContainer) return;
 
     parentContainer.innerHTML = content;
     if (navData) parentContainer.firstChild.setAttribute("nav-data", JSON.stringify(navData));
-    console.log(parentContainer?.firstChild);
   }
 
   updateMetadata(route) {
-    console.log(`--> updateMetadata()`, route);
+    // console.log(`--> updateMetadata()`, route);
     if (checkStringForExistence(route.title)) document.title = route.title;
     if (checkStringForExistence(route.description)) document.querySelector('meta[name="description"]').setAttribute('content', route.description);
     this.updateCanonicalUrl(route.canonicalUrl);
