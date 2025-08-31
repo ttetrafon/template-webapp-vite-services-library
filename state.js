@@ -6,24 +6,42 @@ import { roles, User } from "../model/user.js";
 class State {
   #observables = {};
   #gameConnection = generalNames.CONNECTION_SOLO;
+  #observablesBroadcastChannel;
 
   constructor() {
     if (!State.instance) {
       State.instance = this;
     }
 
+    this.#observablesBroadcastChannel = new BroadcastChannel('my_app_channel');
+    this.#observablesBroadcastChannel.onmessage = (event) => {
+      this.receiveBroadcastedMessage(event);
+    }
+
     let userUuid = Math.random();
     userUuid = crypto.randomUUID();
     this.createObservable(
       generalNames.OBSERVABLE_USER.description,
-      new User(userUuid, roles.VISITOR)
+      new User(userUuid, "", roles.VISITOR.description)
     );
 
+    // console.log("state.#observables:", this.#observables);
     return State.instance;
   }
 
+  async broadcastMessage(type, observable, prop, value) {
+    // console.log(`---> broadcastMessage(${type}, ${observable}, ${prop}, ${value})`);
+    let msg = {
+      type: type.description,
+      observable: observable,
+      prop: prop,
+      value: value
+    };
+    this.#observablesBroadcastChannel.postMessage(JSON.stringify(msg));
+  }
+
   /**
-   *
+   * Create an observable for others to listen to.
    * @param {String} observable
    * @param {Object} obj
    */
@@ -133,6 +151,16 @@ class State {
     }
   }
 
+  async receiveBroadcastedMessage(event) {
+    // console.log(`---> receiveBroadcastedMessage()`, event);
+    let msg = JSON.parse(event.data);
+    switch(msg.type) {
+      case generalNames.BROADCAST_TYPE_UPDATE_OBSERVABLE.description:
+        this.updateObservable(msg.observable, msg.prop, msg.value, false);
+        break
+    }
+  }
+
   /**
    *
    * @param {String} observable: the name of the object
@@ -143,6 +171,7 @@ class State {
     if (this.#observables.hasOwnProperty(observable) && !this.#observables[observable].listeners.hasOwnProperty(subscriber)) {
       this.#observables[observable].listeners[subscriber] = callback;
     }
+    // console.log(this.#observables[observable]);
   }
 
   async unsubscribeFromObservable(observable, subscriber) {
@@ -157,13 +186,15 @@ class State {
    * @param {String} prop The name of the key in the object to update.
    * @param {Object} value
    */
-  async updateObservable(observable, prop, value) {
+  async updateObservable(observable, prop, value, broadcastChange = true) {
     // console.log(`---> updateObservable(${observable}, ${prop}, ${JSON.stringify(value)})`);
-    // let s = await this.getValueFromObservable(observable, prop);
-    // console.log(s, value);
+    let s = await this.getValueFromObservable(observable, prop);
+    console.log(s, value);
     if (this.#observables.hasOwnProperty(observable)) {
       this.#observables[observable].proxy[prop] = value;
+      if (broadcastChange) this.broadcastMessage(generalNames.BROADCAST_TYPE_UPDATE_OBSERVABLE, observable, prop, value);
     }
+    // console.log(this.#observables[observable]);
   }
 }
 
