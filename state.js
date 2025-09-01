@@ -7,11 +7,16 @@ class State {
   #observables = {};
   #gameConnection = generalNames.CONNECTION_SOLO;
   #observablesBroadcastChannel;
+  #pageRunAt;
+  #requestedState = false;
 
   constructor() {
     if (!State.instance) {
       State.instance = this;
     }
+
+    this.#pageRunAt = new Date().valueOf();
+    console.log(this.#pageRunAt);
 
     this.#observablesBroadcastChannel = new BroadcastChannel('my_app_channel');
     this.#observablesBroadcastChannel.onmessage = (event) => {
@@ -22,22 +27,37 @@ class State {
     userUuid = crypto.randomUUID();
     this.createObservable(
       generalNames.OBSERVABLE_USER.description,
-      new User(userUuid, "", roles.VISITOR.description)
+      new User(userUuid, "", roles.VISITOR.description),
+      false
     );
 
-    // console.log("state.#observables:", this.#observables);
+    // console.log("state.#observables:", this.#observables, cloneDeep(this.#observables[generalNames.OBSERVABLE_USER.description].proxy));
+    this.#requestedState = true;
+    this.broadcastMessage({
+      type: generalNames.BROADCAST_TYPE_REQUEST_STATE.description,
+      time: this.#pageRunAt
+    });
+    this.collectState();
     return State.instance;
   }
 
-  async broadcastMessage(type, observable, prop, value) {
-    // console.log(`---> broadcastMessage(${type}, ${observable}, ${prop}, ${value})`);
-    let msg = {
-      type: type.description,
-      observable: observable,
-      prop: prop,
-      value: value
-    };
+  /**
+   *
+   * @param {Object} msg
+   */
+  async broadcastMessage(msg) {
     this.#observablesBroadcastChannel.postMessage(JSON.stringify(msg));
+  }
+
+  collectState() {
+    console.log(`---> collectState()`);
+    let state = {};
+    let keys = Object.keys(this.#observables);
+    for (let i = 0; i < keys.length; i++) {
+      state[keys[i]] = cloneDeep(this.#observables[keys[i]].proxy);
+    }
+    // console.log(state);
+    return state;
   }
 
   /**
@@ -45,7 +65,7 @@ class State {
    * @param {String} observable
    * @param {Object} obj
    */
-  createObservable(observable, obj) {
+  createObservable(observable, obj, broadcastCreation = true) {
     let onChange = (property, newValue) => {
       // console.log(`Property '${property}' changed to:`, newValue, "... calling subscribers!");
       Object.keys(this.#observables[observable].listeners).forEach(subscriber =>
@@ -79,6 +99,12 @@ class State {
       proxy: proxy,
       listeners: {}
     }
+
+    if (broadcastCreation) this.broadcastMessage({
+      type: generalNames.BROADCAST_TYPE_CREATE_OBSERVABLE.description,
+      name: observable,
+      data: obj
+    });
   }
 
   /**
@@ -102,6 +128,15 @@ class State {
     }
 
     return res;
+  }
+
+  async getObservable(observable) {
+    console.log(`---> getObservable(${observable})`);
+    if (this.#observables.hasOwnProperty(observable)) {
+      return cloneDeep(this.#observables[observable].proxy);
+    } else {
+      return {};
+    }
   }
 
   /**
@@ -152,12 +187,45 @@ class State {
   }
 
   async receiveBroadcastedMessage(event) {
-    // console.log(`---> receiveBroadcastedMessage()`, event);
+    console.log(`---> receiveBroadcastedMessage()`, event);
     let msg = JSON.parse(event.data);
+    console.log("msg:", msg);
     switch(msg.type) {
+      case generalNames.BROADCAST_TYPE_REQUEST_STATE.description:
+        // if the request is from an older page, ignore it
+        if (msg.time < this.#pageRunAt) return;
+        // then collect all state data and send them!
+        this.broadcastMessage({
+          type: generalNames.BROADCAST_TYPE_RECEIVE_STATE.description,
+          state: this.collectState()
+        });
+        break;
+      case generalNames.BROADCAST_TYPE_RECEIVE_STATE.description:
+        if (!this.#requestedState) return;
+
+        this.#requestedState = false;
+        let keys = Object.keys(msg.state);
+
+        for (let i = 0; i < keys.length; i++) {
+          let key = keys[i];
+          let data = msg.state[key];
+          if (this.#observables.hasOwnProperty(key)) {
+            let props = Object.keys(data);
+            for (let j = 0; j < props.length; j++) {
+              let prop = props[j];
+              this.updateObservable(key, prop, data[prop], false);
+            }
+          } else {
+            this.createObservable(key, data, false);
+          }
+        }
+        break;
+      case generalNames.BROADCAST_TYPE_CREATE_OBSERVABLE.description:
+        this.createObservable(msg.name, msg.data, false);
+        break;
       case generalNames.BROADCAST_TYPE_UPDATE_OBSERVABLE.description:
         this.updateObservable(msg.observable, msg.prop, msg.value, false);
-        break
+        break;
     }
   }
 
@@ -189,10 +257,14 @@ class State {
   async updateObservable(observable, prop, value, broadcastChange = true) {
     // console.log(`---> updateObservable(${observable}, ${prop}, ${JSON.stringify(value)})`);
     let s = await this.getValueFromObservable(observable, prop);
-    console.log(s, value);
     if (this.#observables.hasOwnProperty(observable)) {
       this.#observables[observable].proxy[prop] = value;
-      if (broadcastChange) this.broadcastMessage(generalNames.BROADCAST_TYPE_UPDATE_OBSERVABLE, observable, prop, value);
+      if (broadcastChange) this.broadcastMessage({
+        type: generalNames.BROADCAST_TYPE_UPDATE_OBSERVABLE.description,
+        observable: observable,
+        prop: prop,
+        value: value
+      });
     }
     // console.log(this.#observables[observable]);
   }
