@@ -1,7 +1,6 @@
 import { cloneDeep } from "lodash";
 import { generalNames } from "../data-library/enums.js";
 import { jsonRequest } from '../helper-library/requests.js';
-import { roles, User } from "../model/user.js";
 
 class State {
   #observables = {};
@@ -11,25 +10,19 @@ class State {
   #requestedState = false;
 
   constructor() {
+    // console.log(`---> State()`);
     if (!State.instance) {
+      // console.log("... instance found!");
       State.instance = this;
     }
 
     this.#pageRunAt = new Date().valueOf();
-    console.log(this.#pageRunAt);
+    // console.log(this.#pageRunAt);
 
     this.#observablesBroadcastChannel = new BroadcastChannel('my_app_channel');
     this.#observablesBroadcastChannel.onmessage = (event) => {
       this.receiveBroadcastedMessage(event);
     }
-
-    let userUuid = Math.random();
-    userUuid = crypto.randomUUID();
-    this.createObservable(
-      generalNames.OBSERVABLE_USER.description,
-      new User(userUuid, "", roles.VISITOR.description),
-      false
-    );
 
     // console.log("state.#observables:", this.#observables, cloneDeep(this.#observables[generalNames.OBSERVABLE_USER.description].proxy));
     this.#requestedState = true;
@@ -255,6 +248,7 @@ class State {
    * @param {Object} value
    */
   async updateObservable(observable, prop, value, broadcastChange = true) {
+    // TODO: updateObservable to accept an object so we can pass multiple values?
     // console.log(`---> updateObservable(${observable}, ${prop}, ${JSON.stringify(value)})`);
     let s = await this.getValueFromObservable(observable, prop);
     if (this.#observables.hasOwnProperty(observable)) {
