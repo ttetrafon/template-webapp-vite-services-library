@@ -123,6 +123,7 @@ export class Navigator {
 
   navigateTo(path, pushState = true, stateData = {}) {
     // console.log(`navigateTo(${ path }, ${ pushState }, ${ JSON.stringify(stateData) })`);
+    if (!this.container) return;
 
     const currentPath = window.location.pathname;
     const currentPathParts = currentPath.split("/").filter(Boolean);
